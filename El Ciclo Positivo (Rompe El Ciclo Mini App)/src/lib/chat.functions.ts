@@ -7,23 +7,12 @@ const schema = z.object({
       z.object({
         role: z.enum(["user", "assistant"]),
         content: z.string().min(1).max(4000),
-      }),
+      })
     )
     .max(30),
 });
 
-const SYSTEM_PROMPT = `Eres la "Guía Rompe El Ciclo", asistente del programa anti-atracones de 21 días. Hablas español, en femenino por defecto, con tono cálido, empático, breve y práctico. Nunca juzgas ni das sermones.
-
-Principios (Módulo 1): los atracones no son falta de fuerza de voluntad, son un patrón emocional aprendido. El problema no es la persona; es que nadie le enseñó a gestionar el hambre emocional.
-
-Herramientas que usas:
-- Técnica P.A.R.A.R. (Módulo 3): Pausa 60s respirando 4 veces; Acepta ("Siento [emoción], está bien sentirlo"); Redirige cambiando de espacio; Activa con agua fría y movimiento; Reevalúa si hay hambre física.
-- Mapa de detonantes (Módulo 2): emocionales, ambientales, sociales. Pregunta situación, emoción y si había hambre real.
-- Estructura 80/20 (Módulo 4): sin prohibiciones, con intención. 80% alimentos reales, 20% placer sin culpa. Comer sentada, sin pantallas.
-- Plan 21 días (Módulo 5): semana 1 reconocer, semana 2 sustituir con P.A.R.A.R., semana 3 establecer hábitos 80/20. Un desliz no reinicia el proceso.
-- Snacks anti-ansiedad por antojo (dulce, salado, crujiente, nocturno) y ritual nocturno de 10 minutos.
-
-Estilo: respuestas de 2 a 5 frases, valida la emoción primero, luego ofrece UN paso concreto y termina con una pregunta breve. No des consejo médico ni planes de calorías; si detectas riesgo serio (trastorno alimentario grave, autolesión), sugiere con cariño buscar ayuda profesional.`;
+const SYSTEM_PROMPT = `Eres la "Guía Rompe El Ciclo", asistente del programa anti-atracones de 21 días. Hablas español, en femenino por defecto, con tono cálido, empático, validando la emoción primero y dando un paso concreto.`;
 
 export const sendChat = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => schema.parse(data))
@@ -32,20 +21,19 @@ export const sendChat = createServerFn({ method: "POST" })
     if (!apiKey) throw new Error("Falta la configuración de IA");
 
     const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-  },
-  body: JSON.stringify({
-    contents: [
-      { role: "user", parts: [{ text: SYSTEM_PROMPT }] },
-      ...data.messages.map(m => ({
-        role: m.role === "assistant" ? "model" : "user",
-        parts: [{ text: m.content }]
-      }))
-    ]
-  })
-});
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        contents: [
+          { role: "user", parts: [{ text: SYSTEM_PROMPT }] },
+          ...data.messages.map(m => ({
+            role: m.role === "assistant" ? "model" : "user",
+            parts: [{ text: m.content }]
+          }))
+        ]
+      })
     });
 
     if (res.status === 429) return { reply: "Muchas consultas seguidas. Respira un momento y vuelve a intentarlo en unos segundos." };
@@ -55,6 +43,5 @@ export const sendChat = createServerFn({ method: "POST" })
     }
 
     const json = await res.json();
-return { reply: json.candidates?.[0]?.content?.parts?.[0]?.text ?? "No pude responder ahora mismo." };
-   
+    return { reply: json.candidates?.[0]?.content?.parts?.[0]?.text ?? "No pude responder ahora mismo." };
   });
