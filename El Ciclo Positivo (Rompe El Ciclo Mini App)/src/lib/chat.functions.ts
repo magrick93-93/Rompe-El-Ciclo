@@ -28,19 +28,24 @@ Estilo: respuestas de 2 a 5 frases, valida la emoción primero, luego ofrece UN 
 export const sendChat = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => schema.parse(data))
   .handler(async ({ data }) => {
-    const apiKey = process.env["LOVABLE_API_KEY"];
+    const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
     if (!apiKey) throw new Error("Falta la configuración de IA");
 
-    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [{ role: "system", content: SYSTEM_PROMPT }, ...data.messages],
-      }),
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    contents: [
+      { role: "user", parts: [{ text: SYSTEM_PROMPT }] },
+      ...data.messages.map(m => ({
+        role: m.role === "assistant" ? "model" : "user",
+        parts: [{ text: m.content }]
+      }))
+    ]
+  })
+});
     });
 
     if (res.status === 429) return { reply: "Muchas consultas seguidas. Respira un momento y vuelve a intentarlo en unos segundos." };
@@ -49,6 +54,7 @@ export const sendChat = createServerFn({ method: "POST" })
       throw new Error("No pude responder ahora mismo");
     }
 
-    const json = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
-    return { reply: json.choices?.[0]?.message?.content ?? "No pude responder ahora mismo." };
+    const json = await res.json();
+return { reply: json.candidates?.[0]?.content?.parts?.[0]?.text ?? "No pude responder ahora mismo." };
+   
   });
