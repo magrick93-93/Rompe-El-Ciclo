@@ -27,7 +27,7 @@ export const sendChat = createServerFn({ method: "POST" })
       },
       body: JSON.stringify({
         contents: [
-          { role: "user", parts: [{ text: SYSTEM_PROMPT }] },
+          { role: "user", parts: [{ text: SYSTEM_PROMPT + " Responde siempre en texto plano, sin usar asteriscos, negritas, cursivas ni ningún formato Markdown." }] }
           ...data.messages.map(m => ({
             role: m.role === "assistant" ? "model" : "user",
             parts: [{ text: m.content }]
