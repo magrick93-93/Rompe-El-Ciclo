@@ -26,14 +26,13 @@ export const sendChat = createServerFn({ method: "POST" })
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        contents: [
-          { role: "user", parts: [{ text: SYSTEM_PROMPT }] }
-          ...data.messages.map(m => ({
-            role: m.role === "assistant" ? "model" : "user",
-            parts: [{ text: m.content }]
-          }))
-        ]
-      })
+      contents: [
+      { role: "user", parts: [{ text: SYSTEM_PROMPT }] },
+      ...data.messages.map(m => ({
+        role: m.role === "assistant" ? "model" : "user",
+        parts: [{ text: m.content }]
+      }))
+    ]
     });
 
     if (res.status === 429) return { reply: "Muchas consultas seguidas. Respira un momento y vuelve a intentarlo en unos segundos." };
