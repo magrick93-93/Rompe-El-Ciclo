@@ -1,18 +1,14 @@
-import { createServerFn } from "@tanstack/react-start";
+import { createServerFn } from "@tanstack/start";
 import { z } from "zod";
 
 const schema = z.object({
-  messages: z
-    .array(
-      z.object({
-        role: z.enum(["user", "assistant"]),
-        content: z.string().min(1).max(4000),
-      })
-    )
-    .max(30),
+  messages: z.array(z.object({
+    role: z.string(),
+    content: z.string()
+  }))
 });
 
-const SYSTEM_PROMPT = `Eres la "Guía Rompe El Ciclo", asistente del programa anti-atracones de 21 días. Hablas español, en femenino por defecto, con tono cálido, empático, validando la emoción primero y dando un paso concreto.`;
+const SYSTEM_PROMPT = "Eres la Guía Rompe El Ciclo, asistente del programa anti-atracones de 21 días. Hablas español, en femenino por defecto, con tono cálido, empático, cálido y cercano. Ayuda a la usuaria a manejar impulsos, reflexionar sobre sus hábitos y avanzar en su proceso sin emitir juicios.";
 
 export const sendChat = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => schema.parse(data))
@@ -26,13 +22,14 @@ export const sendChat = createServerFn({ method: "POST" })
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-      contents: [
-      { role: "user", parts: [{ text: SYSTEM_PROMPT }] },
-      ...data.messages.map(m => ({
-        role: m.role === "assistant" ? "model" : "user",
-        parts: [{ text: m.content }]
-      }))
-    ]
+        contents: [
+          { role: "user", parts: [{ text: SYSTEM_PROMPT }] },
+          ...data.messages.map(m => ({
+            role: m.role === "assistant" ? "model" : "user",
+            parts: [{ text: m.content }]
+          }))
+        ]
+      })
     });
 
     if (res.status === 429) return { reply: "Muchas consultas seguidas. Respira un momento y vuelve a intentarlo en unos segundos." };
@@ -42,5 +39,5 @@ export const sendChat = createServerFn({ method: "POST" })
     }
 
     const json = await res.json();
-    return { reply: json.candidates?.[0]?.content?.parts?.[0]?.text ?? "No pude responder ahora mismo." };
+    return { reply: json.candidates?.[0]?.content?.parts?.[0]?.text ?? "No pude responder ahora mismo" };
   });
