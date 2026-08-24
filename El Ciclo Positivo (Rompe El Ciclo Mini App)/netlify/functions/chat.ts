@@ -4,16 +4,22 @@ const SYSTEM_PROMPT = "Eres la Guía Rompe El Ciclo, asistente del programa anti
 
 export const handler: Handler = async (event) => {
   if (event.httpMethod !== "POST") {
-    return { statusCode: 405, body: "Method Not Allowed" };
+    return { statusCode: 405, body: JSON.stringify({ error: "Method Not Allowed" }) };
   }
 
-  const apiKey = process.env.GEMINI_API_KEY;
+  // Verificamos cualquiera de las variantes de la llave para asegurarnos de que la tome
+  const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || process.env.VITE_MI_LLAVE_SECRETA;
+  
   if (!apiKey) {
-    return { statusCode: 500, body: JSON.stringify({ error: "Falta la configuración de IA" }) };
+    return { 
+      statusCode: 500, 
+      body: JSON.stringify({ error: "Falta configurar la llave de Gemini en Netlify" }) 
+    };
   }
 
   try {
-    const { messages } = JSON.parse(event.body || "{}");
+    const bodyData = JSON.parse(event.body || "{}");
+    const messages = bodyData.messages || [];
 
     const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
       method: "POST",
@@ -21,7 +27,7 @@ export const handler: Handler = async (event) => {
       body: JSON.stringify({
         contents: [
           { role: "user", parts: [{ text: SYSTEM_PROMPT }] },
-          ...(messages || []).map((m: any) => ({
+          ...messages.map((m: any) => ({
             role: m.role === "assistant" ? "model" : "user",
             parts: [{ text: m.content }]
           }))
@@ -30,6 +36,14 @@ export const handler: Handler = async (event) => {
     });
 
     const data = await res.json();
+    
+    if (!res.ok) {
+      return { 
+        statusCode: 500, 
+        body: JSON.stringify({ error: data.error?.message || "Error desde Google API" }) 
+      };
+    }
+
     const reply = data.candidates?.[0]?.content?.parts?.[0]?.text ?? "No pude responder ahora mismo";
 
     return {
@@ -37,7 +51,10 @@ export const handler: Handler = async (event) => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ reply })
     };
-  } catch (error) {
-    return { statusCode: 500, body: JSON.stringify({ error: "Error interno" }) };
+  } catch (error: any) {
+    return { 
+      statusCode: 500, 
+      body: JSON.stringify({ error: error.message || "Error interno del servidor" }) 
+    };
   }
 };
