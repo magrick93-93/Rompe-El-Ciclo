@@ -7,13 +7,12 @@ export const handler: Handler = async (event) => {
     return { statusCode: 405, body: JSON.stringify({ error: "Method Not Allowed" }) };
   }
 
-  // Verificamos cualquiera de las variantes de la llave para asegurarnos de que la tome
   const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || process.env.VITE_MI_LLAVE_SECRETA;
   
   if (!apiKey) {
     return { 
-      statusCode: 500, 
-      body: JSON.stringify({ error: "Falta configurar la llave de Gemini en Netlify" }) 
+      statusCode: 200, 
+      body: JSON.stringify({ reply: "Error: Falta configurar GEMINI_API_KEY en Netlify" }) 
     };
   }
 
@@ -39,8 +38,8 @@ export const handler: Handler = async (event) => {
     
     if (!res.ok) {
       return { 
-        statusCode: 500, 
-        body: JSON.stringify({ error: data.error?.message || "Error desde Google API" }) 
+        statusCode: 200, 
+        body: JSON.stringify({ reply: `Error Google: ${data.error?.message || res.statusText}` }) 
       };
     }
 
@@ -53,8 +52,8 @@ export const handler: Handler = async (event) => {
     };
   } catch (error: any) {
     return { 
-      statusCode: 500, 
-      body: JSON.stringify({ error: error.message || "Error interno del servidor" }) 
+      statusCode: 200, 
+      body: JSON.stringify({ reply: `Error interno: ${error.message}` }) 
     };
   }
 };
