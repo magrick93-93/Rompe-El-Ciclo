@@ -11,7 +11,7 @@ const schema = z.object({
 const SYSTEM_PROMPT = `Eres la Guía Rompe El Ciclo, asistente del programa anti-atracones de 21 días. Hablas español, en femenino por defecto, con tono cálido, empático y cercano. Ayuda a la usuaria a manejar impulsos, reflexionar sobre sus hábitos y avanzar en su proceso sin emitir juicios.`;
 
 export const sendChat = createServerFn({ method: "POST" })
-  .inputValidator((data: unknown) => schema.parse(data))
+  .validator((data: unknown) => schema.parse(data))
   .handler(async ({ data }) => {
     const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
     if (!apiKey) throw new Error("Falta la configuración de IA");
